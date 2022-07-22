@@ -38,53 +38,57 @@ package com.nyrds.pixeldungeon.networking;
 
 import android.os.AsyncTask;
 
+import androidx.annotation.NonNull;
+
 import com.nyrds.LuaInterface;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 @LuaInterface
 public class SClientLua {
-    private String ip;
+    private String hostname;
     private int port;
-    private SClient mTcpClient;
-    private ConcurrentLinkedQueue<String> buffer = new ConcurrentLinkedQueue<>();
+    private ServerConnection serverConnection;
 
-    public SClientLua(String f_ip, int f_port){
-        ip = f_ip;
-        port = f_port;
+    public SClientLua(String hostname, int port){
+        this.hostname = hostname;
+        this.port = port;
+
     }
 
     @LuaInterface
-    public static SClientLua createNew(String ip, int port){ return new SClientLua(ip, port); } //Function for lua...
+    public static SClientLua createNew(String hostname, int port){ return new SClientLua(hostname, port); } //Function for lua...
 
     public SClientLua connect(){ //Connect to server
-        mTcpClient = new SClient(msg -> buffer.add(msg), ip, port);
-
-        new SClientTask().execute("");
-
-        while (!mTcpClient.isInitialized.get()){}
-
+        serverConnection = new ServerConnection(hostname, port);
         return this;
     }
 
-    public void stop(){mTcpClient.stopClient();}
-
-    public void sendMessage(String message){ //Send message to server
-        mTcpClient.sendMessage(message);
+    public boolean loadCert(@NonNull String cert_path, @NonNull String cert_passw){
+        return serverConnection.loadCert(cert_path, cert_passw);
     }
 
-    public String receiveMessage(){ //Get message from buffer
-        return buffer.poll();
+    public void send(String message){
+        serverConnection.send(message);
     }
 
-    public boolean canReceive(){ return (buffer.size() != 0); }
+    public boolean getStatus() {
+        return serverConnection.getStatus();
+    }
 
-    public class SClientTask extends AsyncTask<String, String, SClient> {
-        @Override
-        protected SClient doInBackground(String... message) {
-            mTcpClient.run();
+    public int getToReceiveCount() {
+        return serverConnection.getToReceiveCount();
+    }
 
-            return null;
-        }
+    public String getMessage() {
+        return serverConnection.getMessage();
+    }
+
+    public boolean startConnection(){
+        return serverConnection.startConnection();
+    }
+
+    public boolean stopConnection(){
+        return serverConnection.stopConnection();
     }
 }
